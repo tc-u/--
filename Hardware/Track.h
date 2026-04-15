@@ -5,8 +5,8 @@
 // 传感器引脚定义
 #define AD0_PIN  GPIO_Pin_0
 #define AD1_PIN  GPIO_Pin_1
-#define AD2_PIN  GPIO_Pin_10
-#define OUT_PIN  GPIO_Pin_11
+#define AD2_PIN  GPIO_Pin_13
+#define OUT_PIN  GPIO_Pin_14
 
 // 通道定义
 #define CHANNEL_0 0

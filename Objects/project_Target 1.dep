@@ -1021,8 +1021,8 @@ I (.\Library\stm32f10x_tim.h)(0x4D783BB4)
 I (.\Library\stm32f10x_usart.h)(0x4D783BB4)
 I (.\Library\stm32f10x_wwdg.h)(0x4D783BB4)
 I (.\Library\misc.h)(0x4D783BB4)
-I (Hardware\Track.h)(0x69D7A981)
-F (.\Hardware\Track.h)(0x69D7A981)()
+I (Hardware\Track.h)(0x69DE0F73)
+F (.\Hardware\Track.h)(0x69DE0F73)()
 F (.\Hardware\Encoder.c)(0x69D08352)(--c99 -c --cpu Cortex-M3 -g -O0 --apcs=interwork --split_sections -I .\Start -I .\Library -I .\User -I .\System -I .\Hardware-I.\RTE\_Target_1-ID:\Keil5\ARM\PACK\Keil\STM32F1xx_DFP\2.2.0\Device\Include-ID:\Keil5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER-o .\objects\encoder.o --omf_browse .\objects\encoder.crf --depend .\objects\encoder.d)
 I (.\Start\stm32f10x.h)(0x4D783CB4)
 I (.\Start\core_cm3.h)(0x4D523B58)
@@ -1115,7 +1115,7 @@ I (.\Library\misc.h)(0x4D783BB4)
 I (.\System\Delay.h)(0x6130920E)
 I (.\Hardware\OLED.h)(0x63087D20)
 I (.\Hardware\Motor.h)(0x69D26C10)
-I (.\Hardware\Track.h)(0x69D7A981)
+I (.\Hardware\Track.h)(0x69DE0F73)
 I (.\Hardware\Encoder.h)(0x69CF7BD6)
 I (.\Hardware\Timer.h)(0x69CE986D)
 I (.\Hardware\Buzzer.h)(0x696DEF6C)
