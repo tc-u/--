@@ -36,6 +36,7 @@
 ".\objects\track.o"
 ".\objects\encoder.o"
 ".\objects\timer.o"
+".\objects\jy62.o"
 ".\objects\main.o"
 ".\objects\stm32f10x_it.o"
 --strict --scatter ".\Objects\project.sct"

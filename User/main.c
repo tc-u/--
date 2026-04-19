@@ -7,6 +7,7 @@
 #include"Timer.h"
 #include"Buzzer.h"
 #include"LED.h"
+#include"JY62.h"
 
 
 //uint8_t KeyNum;
@@ -22,6 +23,7 @@ uint8_t Flag_Buzzer_OFF=0;
 
 uint8_t Flag_zhi=1;
 uint8_t Flag_xun=0;
+uint8_t Flag_rotate=0;
 				
 //速度环参数
 float Target1,Target2,Actual1,Actual2,Out1,Out2;
@@ -35,22 +37,40 @@ float ErrorNow_xun,ErrorLast_xun,ErrorSum_xun;
 int main(void)
 {
 	OLED_Init();
-	Motor_Init();
-	Track_Init();
+//	Motor_Init();
+//	Track_Init();
 	Timer_Init();
 	Encoder_Init();
 	Buzzer_Init();
 	LED_Init();
+	JY62_Init();
 
 //	Key_Init();
 	
 	OLED_ShowString(1,1,"LSpeed:");
 	OLED_ShowString(2,1,"RSpeed:");
+	OLED_ShowString(3,1,"Yaw:");
+	OLED_ShowString(4,1,"Target:");
 		
 	while(1)
 	{		
 		OLED_ShowSignedNum(1,8,Actual1,3);
 		OLED_ShowSignedNum(2,8,Actual2,3);
+		
+		// 更新JY62数据
+		JY62_UpdateData();
+		
+		// 显示当前偏航角
+		OLED_ShowFloat(3,5,JY62_GetYaw(),2);
+		
+		// 测试旋转功能
+		if(Flag_rotate==1)
+		{
+			Flag_rotate=0;
+			LED_ON();
+			JY62_RotateToAngle(90);  // 旋转90度
+			LED_OFF();
+		}
 		
 //		Motor_SetLeftSpeed (600);
 //		Motor_SetRightSpeed (600);

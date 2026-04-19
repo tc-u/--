@@ -36,3 +36,4 @@
 .\objects\main.o: .\Hardware\Timer.h
 .\objects\main.o: .\Hardware\Buzzer.h
 .\objects\main.o: .\Hardware\LED.h
+.\objects\main.o: .\Hardware\JY62.h
