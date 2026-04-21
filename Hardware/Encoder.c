@@ -39,7 +39,7 @@ void Encoder_Init(void)
 	TIM_ICInit(TIM4, &TIM_ICInitStructure);
 	//定时器编码器接口配置  通道不反相
 	TIM_EncoderInterfaceConfig(TIM1, TIM_EncoderMode_TI12, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
-	TIM_EncoderInterfaceConfig(TIM4, TIM_EncoderMode_TI12, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
+	TIM_EncoderInterfaceConfig(TIM4, TIM_EncoderMode_TI12, TIM_ICPolarity_Falling, TIM_ICPolarity_Rising);
 	
 	TIM_Cmd(TIM1, ENABLE);
 	TIM_Cmd(TIM4, ENABLE);

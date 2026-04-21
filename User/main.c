@@ -8,11 +8,24 @@
 #include"Buzzer.h"
 #include"LED.h"
 #include"JY62.h"
-
+#include"Key.h"
 
 //uint8_t KeyNum;
 //int16_t LSpeed;
 //int16_t RSpeed;
+
+// 行驶状态枚举
+typedef enum {
+    STATE_START,        // 起始状态          0
+    STATE_A_TO_B,       // A点到B点          1
+    STATE_B_TO_C,       // B点到C点（圆弧）  2
+    STATE_C_TO_D,       // C点到D点          3
+    STATE_D_TO_A,       // D点到A点（圆弧）	 4
+    STATE_STOP          // 停止状态          5
+} CarState;
+
+CarState currentState = STATE_START;    // 小车当前状态
+uint8_t pointCounter = 0;  		 	  // 经过点的计数器
 
 uint16_t WhiteDetectCount=0;
 
@@ -44,16 +57,17 @@ int main(void)
 	Buzzer_Init();
 	LED_Init();
 	JY62_Init();
-
-//	Key_Init();
+	Key_Init();
 	
 	OLED_ShowString(1,1,"LSpeed:");
 	OLED_ShowString(2,1,"RSpeed:");
 	OLED_ShowString(3,1,"Yaw:");
-	OLED_ShowString(4,1,"Target:");
+	OLED_ShowString(4,1,"State:");
 		
 	while(1)
-	{		
+	{	
+		uint8_t key = Key_GetNum();
+
 		OLED_ShowSignedNum(1,8,Actual1,3);
 		OLED_ShowSignedNum(2,8,Actual2,3);
 		
@@ -63,14 +77,30 @@ int main(void)
 		// 显示当前偏航角
 		OLED_ShowFloat(3,5,JY62_GetYaw(),2);
 		
-		// 测试旋转功能
-		if(Flag_rotate==1)
-		{
-			Flag_rotate=0;
-			LED_ON();
-			JY62_RotateToAngle(90);  // 旋转90度
-			LED_OFF();
-		}
+		// 显示当前状态
+        switch(currentState)
+        {
+            case STATE_START:
+                OLED_ShowString(4,7,"START");
+                break;
+            case STATE_A_TO_B:
+                OLED_ShowString(4,7,"A->B  ");
+                break;
+            case STATE_B_TO_C:
+                OLED_ShowString(4,7,"B->C  ");
+                break;
+            case STATE_C_TO_D:
+                OLED_ShowString(4,7,"C->D  ");
+                break;
+            case STATE_D_TO_A:
+                OLED_ShowString(4,7,"D->A  ");
+                break;
+            case STATE_STOP:
+                OLED_ShowString(4,7,"STOP  ");
+                break;
+        }
+
+		
 		
 //		Motor_SetLeftSpeed (600);
 //		Motor_SetRightSpeed (600);
@@ -79,7 +109,17 @@ int main(void)
 		
 		Target1=60;
 		Target2=60;
-		
+
+		// 测试旋转功能
+		if(Flag_rotate==1)
+		{
+			Flag_rotate=0;
+			LED_ON();
+			JY62_RotateToAngle(90);  // 旋转90度
+			LED_OFF();
+		}
+
+		// 声光提示
 		if(Flag_LED_ON==1)
 		{
 			LED_ON();
@@ -111,7 +151,6 @@ void TIM3_IRQHandler()//10ms
 {
 	if (TIM_GetITStatus(TIM3, TIM_IT_Update) == SET)
 	{
-//		Count++;
 		if(Flag_zhi==1)//速度环
 		{
 			Actual1 = Encoder_GetLeft();
