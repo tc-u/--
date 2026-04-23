@@ -29,6 +29,9 @@ uint8_t pointCounter = 0;  		 	  // 经过点的计数器
 
 uint16_t WhiteDetectCount=0;
 
+uint8_t initialYawRecorded = 0; // 是否记录了初始偏航角
+float initialYaw = 0.0f; // 初始偏航角
+
 uint8_t Flag_LED_ON=0;
 uint8_t Flag_LED_OFF=0;
 uint8_t Flag_Buzzer_ON=0;
@@ -102,7 +105,7 @@ int main(void)
 
 		
 		
-//		Motor_SetLeftSpeed (600);
+		Motor_SetLeftSpeed (600);
 //		Motor_SetRightSpeed (600);
 //		Motor_SetSpeed (1000,1000);
 //		Track_Task();
@@ -118,6 +121,18 @@ int main(void)
 			JY62_RotateToAngle(90);  // 旋转90度
 			LED_OFF();
 		}
+
+		// 启动按钮控制
+        if(initialYawRecorded == 0) // 按键1作为启动按钮
+        {
+            // 记录初始角度
+            JY62_UpdateData();
+            initialYaw = JY62_GetYaw();
+            initialYawRecorded = 1;
+            
+            currentState = STATE_A_TO_B;
+            pointCounter = 0;
+        }
 
 		// 声光提示
 		if(Flag_LED_ON==1)
@@ -151,87 +166,110 @@ void TIM3_IRQHandler()//10ms
 {
 	if (TIM_GetITStatus(TIM3, TIM_IT_Update) == SET)
 	{
-		if(Flag_zhi==1)//速度环
-		{
-			Actual1 = Encoder_GetLeft();
-			Actual2 = Encoder_GetRight();
+		// 在switch语句外部声明变量
+		float ErrorDiff_xun;
+		int16_t leftSpeed;
+		int16_t rightSpeed;
 		
-			ErrorLast1=ErrorNow1;
-			ErrorLast2=ErrorNow2;
-		
-			ErrorNow1=Target1-Actual1;
-			ErrorNow2=Target2-Actual2;
-		
-			ErrorSum1+=ErrorNow1;
-			ErrorSum2+=ErrorNow2;
-
-			Out1=Kp_su*ErrorNow1 +Ki_su*ErrorSum1 +Kd_su*(ErrorNow1-ErrorLast1);
-			Out2=Kp_su*ErrorNow2 +Ki_su*ErrorSum2 +Kd_su*(ErrorNow2-ErrorLast2);
-		
-			if(Out1>1000){Out1=1000;}
-			if(Out2>1000){Out2=1000;}
-			if(Out1<0){Out1=0;}
-			if(Out2<0){Out2=0;}
-
-			Motor_SetLeftSpeed(Out1);
-			Motor_SetRightSpeed(Out2);
+		switch(currentState)
+        {
+			case STATE_START: 
+				break;
+         case STATE_A_TO_B://速度环
+			case STATE_C_TO_D://速度环
+				Actual1 = Encoder_GetLeft();
+				Actual2 = Encoder_GetRight();
 			
-			if(Track_ReadAll()!=0xFF)//判定是否识别到黑线
-			{
-				Flag_zhi=0;
-				Flag_xun=1;
-				Flag_LED_ON =1;
-				Flag_Buzzer_ON =1;				
-			}
-		}
-		
-		if(Flag_xun==1)//循迹环
-		{
-			ErrorNow_xun = Track_GetError();
-        
-        // 计算积分项
-        ErrorSum_xun += ErrorNow_xun; 
-        
-        // 计算微分项
-        float ErrorDiff_xun = ErrorNow_xun - ErrorLast_xun;
-        
-        // PID计算
-        Out_xun = Kp_xun * ErrorNow_xun + Ki_xun* ErrorSum_xun+ Kd_xun * ErrorDiff_xun;
-        
-        // 限制PID输出范围
-        if (Out_xun > 300) Out_xun = 300;
-        if (Out_xun < -300) Out_xun = -300;
-        
-        // 计算左右电机速度
-        int16_t leftSpeed = 300 - Out_xun;
-        int16_t rightSpeed = 300 + Out_xun;
-        
-        // 限制速度范围
-        if (leftSpeed > 1000) leftSpeed = 1000;
-        if (leftSpeed < 0) leftSpeed = 0;
-        if (rightSpeed > 1000) rightSpeed = 1000;
-        if (rightSpeed < 0) rightSpeed = 0;
-        
-        // 控制电机
-        Motor_SetLeftSpeed(leftSpeed);
-        Motor_SetRightSpeed(rightSpeed);
-        
-        // 更新上一次误差
-        ErrorLast_xun = ErrorNow_xun;
-		  
-		  	if(Track_ReadAll()==0x00)//判定是否识别到全白
-			{
-				WhiteDetectCount++;
-				if(WhiteDetectCount>3)//判断是否已经识别到全白
-				{
-					WhiteDetectCount=0;
-					Flag_xun=0;
-					Flag_zhi=1;
-					Flag_LED_OFF =1;
-					Flag_Buzzer_OFF =1;	
-				}
-			}
+				ErrorLast1=ErrorNow1;
+				ErrorLast2=ErrorNow2;
+			
+				ErrorNow1=Target1-Actual1;
+				ErrorNow2=Target2-Actual2;
+			
+				ErrorSum1+=ErrorNow1;
+				ErrorSum2+=ErrorNow2;
 
+				Out1=Kp_su*ErrorNow1 +Ki_su*ErrorSum1 +Kd_su*(ErrorNow1-ErrorLast1);
+				Out2=Kp_su*ErrorNow2 +Ki_su*ErrorSum2 +Kd_su*(ErrorNow2-ErrorLast2);
+			
+				if(Out1>1000){Out1=1000;}
+				if(Out2>1000){Out2=1000;}
+				if(Out1<0){Out1=0;}
+				if(Out2<0){Out2=0;}
+
+//				Motor_SetLeftSpeed(Out1);
+//				Motor_SetRightSpeed(Out2);
+				
+				if(Track_ReadAll()!=0xFF)//判定是否识别到黑线
+				{
+					if(currentState==STATE_A_TO_B)
+					{
+						currentState =STATE_B_TO_C;
+					}
+					else
+					{
+						currentState = STATE_D_TO_A ;
+					}
+					Flag_LED_ON =1;
+					Flag_Buzzer_ON =1;				
+				}
+
+			 case STATE_B_TO_C://循迹环
+			 case STATE_D_TO_A://循迹环
+				ErrorNow_xun = Track_GetError();
+	
+				// 计算积分项
+				ErrorSum_xun += ErrorNow_xun; 
+				
+				// 计算微分项
+				ErrorDiff_xun = ErrorNow_xun - ErrorLast_xun;
+				
+				// PID计算
+				Out_xun = Kp_xun * ErrorNow_xun + Ki_xun* ErrorSum_xun+ Kd_xun * ErrorDiff_xun;
+				
+				// 限制PID输出范围
+				if (Out_xun > 300) Out_xun = 300;
+				if (Out_xun < -300) Out_xun = -300;
+				
+				// 计算左右电机速度
+				leftSpeed = 300 - Out_xun;
+				rightSpeed = 300 + Out_xun;
+				
+				// 限制速度范围
+				if (leftSpeed > 1000) leftSpeed = 1000;
+				if (leftSpeed < 0) leftSpeed = 0;
+				if (rightSpeed > 1000) rightSpeed = 1000;
+				if (rightSpeed < 0) rightSpeed = 0;
+				
+				// 控制电机
+				Motor_SetLeftSpeed(leftSpeed);
+				Motor_SetRightSpeed(rightSpeed);
+				
+				// 更新上一次误差
+				ErrorLast_xun = ErrorNow_xun;
+				
+				if(Track_ReadAll()==0x00)//判定是否识别到全白
+				{
+					WhiteDetectCount++;
+					if(WhiteDetectCount>3)//判断是否已经识别到全白
+					{
+						WhiteDetectCount=0;
+						if(currentState==STATE_B_TO_C)
+						{
+							currentState =STATE_C_TO_D;
+							JY62_RotateToAngle(initialYaw+180.0);
+						}
+						else
+						{
+							currentState = STATE_STOP ;
+							JY62_RotateToAngle(initialYaw);
+						}
+						Flag_LED_OFF =1;
+						Flag_Buzzer_OFF =1;	
+					}
+				}
+			case STATE_STOP:
+				break;
 		}
 		
 		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
