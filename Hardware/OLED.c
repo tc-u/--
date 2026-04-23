@@ -274,51 +274,64 @@ void OLED_ShowBinNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Leng
   */
 void OLED_ShowFloat(uint8_t Line, uint8_t Column, float Number, uint8_t Decimal)
 {
-	int32_t IntegerPart;
-	uint32_t DecimalPart;
-	uint8_t i;
-	
-	// 处理符号
-	if (Number >= 0)
-	{
-		OLED_ShowChar(Line, Column, '+');
-	}
-	else
-	{
-		OLED_ShowChar(Line, Column, '-');
-		Number = -Number;
-	}
-	
-	// 分离整数部分和小数部分
-	IntegerPart = (int32_t)Number;
-	DecimalPart = (uint32_t)((Number - IntegerPart) * OLED_Pow(10, Decimal));
-	
-	// 显示整数部分
-	if (IntegerPart < 10)
-	{
-		OLED_ShowChar(Line, Column + 1, '0');
-		OLED_ShowChar(Line, Column + 2, IntegerPart + '0');
-	}
-	else if (IntegerPart < 100)
-	{
-		OLED_ShowChar(Line, Column + 1, IntegerPart / 10 + '0');
-		OLED_ShowChar(Line, Column + 2, IntegerPart % 10 + '0');
-	}
-	else
-	{
-		OLED_ShowChar(Line, Column + 1, IntegerPart / 100 + '0');
-		OLED_ShowChar(Line, Column + 2, (IntegerPart / 10) % 10 + '0');
-		OLED_ShowChar(Line, Column + 3, IntegerPart % 10 + '0');
-	}
-	
-	// 显示小数点
-	OLED_ShowChar(Line, Column + 4, '.');
-	
-	// 显示小数部分
-	for (i = 0; i < Decimal; i++)
-	{
-		OLED_ShowChar(Line, Column + 5 + i, (DecimalPart / OLED_Pow(10, Decimal - i - 1)) % 10 + '0');
-	}
+    int32_t IntegerPart;
+    uint32_t DecimalPart;
+    uint8_t i;
+    uint8_t intDigits = 0; // 整数部分位数
+    
+    // 处理符号
+    if (Number >= 0)
+    {
+        OLED_ShowChar(Line, Column, '+');
+    }
+    else
+    {
+        OLED_ShowChar(Line, Column, '-');
+        Number = -Number;
+    }
+    
+    // 分离整数部分和小数部分
+    IntegerPart = (int32_t)Number;
+    DecimalPart = (uint32_t)((Number - IntegerPart) * OLED_Pow(10, Decimal));
+    
+    // 计算整数部分位数
+    int32_t temp = IntegerPart;
+    do {
+        intDigits++;
+        temp /= 10;
+    } while (temp > 0);
+    
+    // 确保至少显示两位整数
+    if (intDigits < 2) {
+        intDigits = 2;
+    }
+    
+    // 显示整数部分
+    if (IntegerPart < 10)
+    {
+        OLED_ShowChar(Line, Column + 1, '0');
+        OLED_ShowChar(Line, Column + 2, IntegerPart + '0');
+    }
+    else if (IntegerPart < 100)
+    {
+        OLED_ShowChar(Line, Column + 1, IntegerPart / 10 + '0');
+        OLED_ShowChar(Line, Column + 2, IntegerPart % 10 + '0');
+    }
+    else
+    {
+        OLED_ShowChar(Line, Column + 1, IntegerPart / 100 + '0');
+        OLED_ShowChar(Line, Column + 2, (IntegerPart / 10) % 10 + '0');
+        OLED_ShowChar(Line, Column + 3, IntegerPart % 10 + '0');
+    }
+    
+    // 显示小数点（根据整数部分位数调整位置）
+    OLED_ShowChar(Line, Column + 1 + intDigits, '.');
+    
+    // 显示小数部分
+    for (i = 0; i < Decimal; i++)
+    {
+        OLED_ShowChar(Line, Column + 2 + intDigits + i, (DecimalPart / OLED_Pow(10, Decimal - i - 1)) % 10 + '0');
+    }
 }
 
 /**

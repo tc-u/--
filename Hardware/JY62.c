@@ -85,10 +85,10 @@ void USART3_IRQHandler(void) {
                 
                 if (checksum == jy62RxBuffer[10]) {
                     // 解析数据
-jy62Data.roll = ((int16_t)(jy62RxBuffer[3] << 8 | jy62RxBuffer[2])) / 100.0f;
-jy62Data.pitch = ((int16_t)(jy62RxBuffer[5] << 8 | jy62RxBuffer[4])) / 100.0f;
-jy62Data.yaw = ((int16_t)(jy62RxBuffer[7] << 8 | jy62RxBuffer[6])) / 100.0f;
-    jy62Data.wx = ((int16_t)(jy62RxBuffer[9] << 8 | jy62RxBuffer[8])) / 100.0f;
+                    jy62Data.roll = ((int16_t)(jy62RxBuffer[3] << 8 | jy62RxBuffer[2])) / 100.0f;
+                    jy62Data.pitch = ((int16_t)(jy62RxBuffer[5] << 8 | jy62RxBuffer[4])) / 100.0f;
+                    jy62Data.yaw = ((int16_t)(jy62RxBuffer[7] << 8 | jy62RxBuffer[6])) / 100.0f;
+                    jy62Data.wx = ((int16_t)(jy62RxBuffer[9] << 8 | jy62RxBuffer[8])) / 100.0f;
                     
                     jy62DataReady = 1;
                 }

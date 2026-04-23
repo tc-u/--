@@ -50,8 +50,8 @@ float ErrorNow_xun,ErrorLast_xun,ErrorSum_xun;
 int main(void)
 {
 	OLED_Init();
-//	Motor_Init();
-//	Track_Init();
+	Motor_Init();
+	Track_Init();
 	Timer_Init();
 	Encoder_Init();
 	Buzzer_Init();
