@@ -32,6 +32,7 @@ uint16_t WhiteDetectCount=0;
 uint8_t initialYawRecorded = 0; // 是否记录了初始偏航角
 float initialYaw = 0.0f; // 初始偏航角
 
+
 uint8_t Flag_LED_ON=0;
 uint8_t Flag_LED_OFF=0;
 uint8_t Flag_Buzzer_ON=0;
@@ -66,7 +67,10 @@ int main(void)
 	OLED_ShowString(2,1,"RSpeed:");
 	OLED_ShowString(3,1,"Yaw:");
 	OLED_ShowString(4,1,"State:");
-		
+
+	Target1=30;
+	Target2=30;	
+
 	while(1)
 	{	
 		uint8_t key = Key_GetNum();
@@ -105,20 +109,19 @@ int main(void)
 
 		
 		
-		Motor_SetLeftSpeed (600);
+// 	Motor_SetLeftSpeed (600);
 //		Motor_SetRightSpeed (600);
 //		Motor_SetSpeed (1000,1000);
 //		Track_Task();
 		
-		Target1=60;
-		Target2=60;
+		
 
 		// 测试旋转功能
 		if(Flag_rotate==1)
 		{
 			Flag_rotate=0;
 			LED_ON();
-			JY62_RotateToAngle(90);  // 旋转90度
+			JY62_RotateToAngle(90);  // 旋转30度
 			LED_OFF();
 		}
 
@@ -135,25 +138,23 @@ int main(void)
         }
 
 		// 声光提示
-		if(Flag_LED_ON==1)
+		if(Flag_LED_ON==1 && Flag_Buzzer_ON==1)
 		{
 			LED_ON();
+			Buzzer_ON();
 			Delay_ms(500);
 			LED_OFF();
+			Buzzer_OFF();
 			Flag_LED_ON=0;
+			Flag_Buzzer_ON=0;
 		}
+
 		if(Flag_LED_OFF==1)
 		{
 			LED_OFF();
 			Flag_LED_OFF=0;
 		}
-		if(Flag_Buzzer_ON==1)
-		{
-			Buzzer_ON();
-			Delay_ms(500);
-			Buzzer_OFF();
-			Flag_Buzzer_ON=0;
-		}
+		
 		if(Flag_Buzzer_OFF==1)
 		{
 			Buzzer_OFF();
@@ -175,7 +176,7 @@ void TIM3_IRQHandler()//10ms
         {
 			case STATE_START: 
 				break;
-         case STATE_A_TO_B://速度环
+         	case STATE_A_TO_B://速度环
 			case STATE_C_TO_D://速度环
 				Actual1 = Encoder_GetLeft();
 				Actual2 = Encoder_GetRight();
@@ -197,10 +198,10 @@ void TIM3_IRQHandler()//10ms
 				if(Out1<0){Out1=0;}
 				if(Out2<0){Out2=0;}
 
-//				Motor_SetLeftSpeed(Out1);
-//				Motor_SetRightSpeed(Out2);
+				Motor_SetLeftSpeed(Out1);
+				Motor_SetRightSpeed(Out2);
 				
-				if(Track_ReadAll()!=0xFF)//判定是否识别到黑线
+				if(Track_ReadAll()!=0x00)//判定是否识别到黑线
 				{
 					if(currentState==STATE_A_TO_B)
 					{
@@ -213,6 +214,7 @@ void TIM3_IRQHandler()//10ms
 					Flag_LED_ON =1;
 					Flag_Buzzer_ON =1;				
 				}
+				break;
 
 			 case STATE_B_TO_C://循迹环
 			 case STATE_D_TO_A://循迹环
@@ -251,23 +253,38 @@ void TIM3_IRQHandler()//10ms
 				if(Track_ReadAll()==0x00)//判定是否识别到全白
 				{
 					WhiteDetectCount++;
-					if(WhiteDetectCount>3)//判断是否已经识别到全白
-					{
-						WhiteDetectCount=0;
-						if(currentState==STATE_B_TO_C)
-						{
-							currentState =STATE_C_TO_D;
-							JY62_RotateToAngle(initialYaw+180.0);
-						}
-						else
-						{
-							currentState = STATE_STOP ;
-							JY62_RotateToAngle(initialYaw);
-						}
-						Flag_LED_OFF =1;
-						Flag_Buzzer_OFF =1;	
-					}
 				}
+				else
+				{
+					WhiteDetectCount=0;
+				}	
+
+				if(WhiteDetectCount>3)//判断是否已经识别到全白
+				{
+					WhiteDetectCount=0;
+					if(currentState==STATE_B_TO_C)
+					{
+						JY62_RotateToAngle(initialYaw+180.0);
+						Encoder_Reset();
+						// 重置PID参数
+						ErrorSum1 = 0;
+						ErrorSum2 = 0;
+						ErrorLast1 = 0;
+						ErrorLast2 = 0;
+						currentState =STATE_C_TO_D;		
+						Delay_ms(300);
+										
+					}
+					else
+					{
+						JY62_RotateToAngle(initialYaw);
+						currentState = STATE_STOP ;
+					}
+					Flag_LED_ON =1;
+					Flag_Buzzer_ON =1;	
+				}
+				break;
+				
 			case STATE_STOP:
 				break;
 		}

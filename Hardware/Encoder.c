@@ -39,7 +39,7 @@ void Encoder_Init(void)
 	TIM_ICInit(TIM4, &TIM_ICInitStructure);
 	//定时器编码器接口配置  通道不反相
 	TIM_EncoderInterfaceConfig(TIM1, TIM_EncoderMode_TI12, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
-	TIM_EncoderInterfaceConfig(TIM4, TIM_EncoderMode_TI12, TIM_ICPolarity_Falling, TIM_ICPolarity_Rising);
+	TIM_EncoderInterfaceConfig(TIM4, TIM_EncoderMode_TI12, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
 	
 	TIM_Cmd(TIM1, ENABLE);
 	TIM_Cmd(TIM4, ENABLE);
@@ -62,3 +62,17 @@ int16_t Encoder_GetRight(void)
 	TIM_SetCounter(TIM4, 0);
 	return Temp;
 }
+
+/**
+ * @brief 重置编码器计数
+ * @param 无
+ * @retval 无
+ */
+void Encoder_Reset(void)
+{
+    // 具体实现根据编码器硬件而定
+    // 例如，如果使用定时器编码器模式，可以重置计数器
+    TIM_SetCounter(TIM1, 0); 
+    TIM_SetCounter(TIM4, 0); 
+}
+

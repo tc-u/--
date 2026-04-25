@@ -35,14 +35,14 @@ void Motor_SetRightSpeed(float Speed)//设置右电机速度
 {
 	if(Speed>=0)
 	{
-		GPIO_SetBits(GPIOA,GPIO_Pin_6);
-		GPIO_ResetBits(GPIOA,GPIO_Pin_7);
+		GPIO_SetBits(GPIOA,GPIO_Pin_7);
+		GPIO_ResetBits(GPIOA,GPIO_Pin_6);
 		PWM_SetCompare2(Speed);
 	}
 	else
 	{		
-		GPIO_SetBits(GPIOA,GPIO_Pin_7);
-		GPIO_ResetBits(GPIOA,GPIO_Pin_6);
+		GPIO_SetBits(GPIOA,GPIO_Pin_6);
+		GPIO_ResetBits(GPIOA,GPIO_Pin_7);
 		PWM_SetCompare2(-Speed);
 	}
 }
@@ -67,14 +67,14 @@ void Motor_SetSpeed(float Speed1, float Speed2)
     // 设置右电机方向
     if(Speed2 >= 0)
     {
-        GPIO_SetBits(GPIOA, GPIO_Pin_6);
-        GPIO_ResetBits(GPIOA, GPIO_Pin_7);
+        GPIO_SetBits(GPIOA, GPIO_Pin_7);
+        GPIO_ResetBits(GPIOA, GPIO_Pin_6);
         PWM_SetCompare2(Speed2);
     }
     else
     {
-        GPIO_SetBits(GPIOA, GPIO_Pin_7);
-        GPIO_ResetBits(GPIOA, GPIO_Pin_6);
+        GPIO_SetBits(GPIOA, GPIO_Pin_6);
+        GPIO_ResetBits(GPIOA, GPIO_Pin_7);
         PWM_SetCompare2(-Speed2);
     }
 }

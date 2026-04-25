@@ -4,5 +4,7 @@
 void Encoder_Init(void);
 int16_t Encoder_GetLeft(void);
 int16_t Encoder_GetRight(void);
+void Encoder_Reset(void);
+
 
 #endif

@@ -32,3 +32,4 @@
 .\objects\jy62.o: .\System\Delay.h
 .\objects\jy62.o: Hardware\Motor.h
 .\objects\jy62.o: D:\Keil5\ARM\ARMCC\Bin\..\include\math.h
+.\objects\jy62.o: Hardware\OLED.h

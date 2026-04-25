@@ -2,6 +2,10 @@
 #include "Delay.h"
 #include "Motor.h"
 #include <math.h>
+#include"OLED.h"
+
+
+
 
 // 全局变量
 JY62_Data jy62Data;
@@ -85,10 +89,10 @@ void USART3_IRQHandler(void) {
                 
                 if (checksum == jy62RxBuffer[10]) {
                     // 解析数据
-                    jy62Data.roll = ((int16_t)(jy62RxBuffer[3] << 8 | jy62RxBuffer[2])) / 100.0f;
-                    jy62Data.pitch = ((int16_t)(jy62RxBuffer[5] << 8 | jy62RxBuffer[4])) / 100.0f;
-                    jy62Data.yaw = ((int16_t)(jy62RxBuffer[7] << 8 | jy62RxBuffer[6])) / 100.0f;
-                    jy62Data.wx = ((int16_t)(jy62RxBuffer[9] << 8 | jy62RxBuffer[8])) / 100.0f;
+                    jy62Data.roll = ((int16_t)(jy62RxBuffer[3] << 8 | jy62RxBuffer[2])) / 32768.0f*180.0f;
+                    jy62Data.pitch = ((int16_t)(jy62RxBuffer[5] << 8 | jy62RxBuffer[4])) / 32768.0f*180.0f;
+                    jy62Data.yaw = ((int16_t)(jy62RxBuffer[7] << 8 | jy62RxBuffer[6])) / 32768.0f*180.0f;
+                    jy62Data.wx = ((int16_t)(jy62RxBuffer[9] << 8 | jy62RxBuffer[8])) / 32768.0f*180.0f;
                     
                     jy62DataReady = 1;
                 }
@@ -117,7 +121,8 @@ void JY62_UpdateData(void) {
  * @param 无
  * @retval 当前偏航角（度）
  */
-float JY62_GetYaw(void) {
+float JY62_GetYaw(void)
+{
     return jy62Data.yaw;
 }
 
@@ -126,10 +131,15 @@ float JY62_GetYaw(void) {
  * @param targetAngle 目标角度（度）
  * @retval 无
  */
-void JY62_RotateToAngle(float targetAngle) {
-    // 计算目标角度与当前角度的差值
-    float currentYaw = JY62_GetYaw();
-    float angleDiff = targetAngle - currentYaw;
+void JY62_RotateToAngle(float targetAngle)
+ {
+    Delay_ms(300);
+    // 控制变量
+    float currentYaw, angleDiff;
+    float errorSum = 0;      // 积分项
+    float lastError = 0;     // 上一次误差
+    float lastAngleDiff = 0;  // 上一次角度差（用于检测超调）
+    int16_t speed;
     
     // 角度归一化到-180~180度
     if (angleDiff > 180) {
@@ -138,9 +148,10 @@ void JY62_RotateToAngle(float targetAngle) {
         angleDiff += 360;
     }
     
-    // 简单的P控制
-    float Kp = 5.0f;  // 比例系数
-    int16_t speed = (int16_t)(angleDiff * Kp);
+    // PID控制参数
+    float Kp = 2.0f;   // 比例系数
+    float Ki = 0.1f;   // 积分系数
+    float Kd = 0.0f;   // 微分系数
     
     // 限制速度范围
     if (speed > 500) speed = 500;
@@ -148,7 +159,11 @@ void JY62_RotateToAngle(float targetAngle) {
     
     // 旋转
     while (1) {
+        // 更新JY62数据，确保获取最新的角度值
+        JY62_UpdateData();
+		OLED_ShowFloat(3,5,JY62_GetYaw(),2);        
         currentYaw = JY62_GetYaw();
+
         angleDiff = targetAngle - currentYaw;
         
         // 角度归一化
@@ -158,19 +173,65 @@ void JY62_RotateToAngle(float targetAngle) {
             angleDiff += 360;
         }
         
-        // 检查是否到达目标角度（误差小于1度）
-        if (fabs(angleDiff) < 1.0f) {
-            break;
+        // 检查是否到达目标角度（误差小于0.5度）
+        if (fabs(angleDiff) < 0.5f) {
+            // 增加停止确认：连续3次检测误差都小于0.5度
+            uint8_t confirmCount = 0;
+            for (uint8_t i = 0; i < 3; i++) {
+                JY62_UpdateData();
+                float tempYaw = JY62_GetYaw();
+                float tempDiff = targetAngle - tempYaw;
+                if (tempDiff > 180) tempDiff -= 360;
+                if (tempDiff < -180) tempDiff += 360;
+                
+                if (fabs(tempDiff) < 0.5f) {
+                    confirmCount++;
+                }
+                Delay_ms(5);
+            }
+            
+            if (confirmCount >= 2) {
+                break;
+            }
         }
         
-        // 更新速度
-        speed = (int16_t)(angleDiff * Kp);
+        // 检测超调（误差符号改变），重置积分项
+        if (lastAngleDiff * angleDiff < 0) {
+            errorSum = 0;  // 重置积分项，避免过度回调
+        }
+
+        // 提前减速策略
+        float speedScale = 1.0f;
+        if (fabs(angleDiff) < 5.0f) {
+            speedScale = fabs(angleDiff) / 5.0f;  // 随着误差减小，逐渐减速
+        }
+
+        // PID计算
+        errorSum += angleDiff;
+        float errorDiff = angleDiff - lastError;
+        speed = (int16_t)(Kp * angleDiff + Ki * errorSum + Kd * errorDiff * speedScale);
+        
+        // 限制速度范围
         if (speed > 500) speed = 500;
         if (speed < -500) speed = -500;
-        
+
+        // 动态调整死区：接近目标时减小死区
+        int deadZone = 65;
+        // if (fabs(angleDiff) < 2.0f) {
+        //     deadZone = 30;  // 接近目标时减小死区
+        // }
+        // 添加死区，防止小误差时电机抖动
+        if (fabs(speed) < deadZone) {
+            speed = speed > 0 ? deadZone : -deadZone;
+        }
+
         // 设置电机速度
-        Motor_SetLeftSpeed(500 - speed);
-        Motor_SetRightSpeed(500 + speed);
+        Motor_SetLeftSpeed( - speed);
+        Motor_SetRightSpeed(+speed);
+
+        // 更新上一次误差和角度差
+        lastError = angleDiff;
+        lastAngleDiff = angleDiff;
         
         Delay_ms(10);
     }
