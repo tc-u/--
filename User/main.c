@@ -93,6 +93,16 @@ int main(void)
 		}
 
 		OLED_ShowSignedNum(1,6,Mode,1);
+
+		if(key == 2)
+		{
+			LapCount++;
+			if(LapCount>3)
+			{
+				LapCount = 1;
+			}	
+		}
+
 		OLED_ShowSignedNum(2,5,LapCount,1);
 		
 		// 更新JY62数据
