@@ -29,6 +29,9 @@ uint8_t pointCounter = 0;  		 	  // 经过点的计数器
 
 uint16_t WhiteDetectCount=0;
 
+uint8_t Mode=1;
+uint8_t LapCount=0;
+
 uint8_t initialYawRecorded = 0; // 是否记录了初始偏航角
 float initialYaw = 0.0f; // 初始偏航角
 
@@ -63,8 +66,8 @@ int main(void)
 	JY62_Init();
 	Key_Init();
 	
-	OLED_ShowString(1,1,"LSpeed:");
-	OLED_ShowString(2,1,"RSpeed:");
+	OLED_ShowString(1,1,"Mode:");
+	OLED_ShowString(2,1,"Lap:");
 	OLED_ShowString(3,1,"Yaw:");
 	OLED_ShowString(4,1,"State:");
 
@@ -75,8 +78,22 @@ int main(void)
 	{	
 		uint8_t key = Key_GetNum();
 
-		OLED_ShowSignedNum(1,8,Actual1,3);
-		OLED_ShowSignedNum(2,8,Actual2,3);
+		// 按键1控制Mode切换
+		if(key == 1)
+		{
+			// 在Mode 1和2之间切换
+			if(Mode == 1)
+			{
+				Mode = 2;
+			}
+			else
+			{
+				Mode = 1;
+			}
+		}
+
+		OLED_ShowSignedNum(1,6,Mode,1);
+		OLED_ShowSignedNum(2,5,LapCount,1);
 		
 		// 更新JY62数据
 		JY62_UpdateData();
@@ -126,7 +143,7 @@ int main(void)
 		}
 
 		// 启动按钮控制
-        if(initialYawRecorded == 0&&key==1) // 按键1作为启动按钮
+        if(initialYawRecorded == 0&&key==3) // 按键3作为启动按钮
         {
             // 记录初始角度
             JY62_UpdateData();
