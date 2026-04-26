@@ -126,7 +126,7 @@ int main(void)
 		}
 
 		// 启动按钮控制
-        if(initialYawRecorded == 0) // 按键1作为启动按钮
+        if(initialYawRecorded == 0&&key==1) // 按键1作为启动按钮
         {
             // 记录初始角度
             JY62_UpdateData();
@@ -171,36 +171,83 @@ void TIM3_IRQHandler()//10ms
 		float ErrorDiff_xun;
 		int16_t leftSpeed;
 		int16_t rightSpeed;
-		
+
+		float currentYaw;
+		float angleError;
+		float angleOut;
+		float angleTarget;
+
+		float Kp_angle;
+		float Ki_angle;
+		float Kd_angle;
+		static float angleErrorSum;
+		static float lastAngleError;
+		float angleErrorDiff;
+
+		int baseSpeed;
+
+		JY62_UpdateData();
+
 		switch(currentState)
         {
 			case STATE_START: 
 				break;
          	case STATE_A_TO_B://速度环
 			case STATE_C_TO_D://速度环
-				Actual1 = Encoder_GetLeft();
-				Actual2 = Encoder_GetRight();
-			
-				ErrorLast1=ErrorNow1;
-				ErrorLast2=ErrorNow2;
-			
-				ErrorNow1=Target1-Actual1;
-				ErrorNow2=Target2-Actual2;
-			
-				ErrorSum1+=ErrorNow1;
-				ErrorSum2+=ErrorNow2;
+				if(currentState == STATE_A_TO_B)//A->B
+				{
+					angleTarget = 0.0f;
+				}
+				else//C->D
+				{
+					angleTarget = 180.0f;
+				}
+				currentYaw = JY62_GetYaw();
+				angleError = angleTarget - currentYaw;
 
-				Out1=Kp_su*ErrorNow1 +Ki_su*ErrorSum1 +Kd_su*(ErrorNow1-ErrorLast1);
-				Out2=Kp_su*ErrorNow2 +Ki_su*ErrorSum2 +Kd_su*(ErrorNow2-ErrorLast2);
-			
-				if(Out1>1000){Out1=1000;}
-				if(Out2>1000){Out2=1000;}
-				if(Out1<0){Out1=0;}
-				if(Out2<0){Out2=0;}
+				// 角度误差归一化到-180~180度
+				if (angleError > 180) {
+					angleError -= 360;
+				} else if (angleError < -180) {
+					angleError += 360;
+				}
 
-				Motor_SetLeftSpeed(Out1);
-				Motor_SetRightSpeed(Out2);
+				// 角度环PID参数
+				Kp_angle = 10.0f;
+				Ki_angle = 0.1f;
+				Kd_angle = 1.0f;
+				angleErrorSum = 0.0f;
+				lastAngleError = 0.0f;
+
+				angleErrorSum += angleError;
+				angleErrorDiff = angleError - lastAngleError;
+
+				angleOut = Kp_angle * angleError + Ki_angle * angleErrorSum + Kd_angle * angleErrorDiff;
+
+				// 限制角度环输出范围
+				if (angleOut > 300) angleOut = 300;
+				if (angleOut < -300) angleOut = -300;
+
+				// 基础速度
+				baseSpeed = 300;
+
+				// 计算左右电机速度
+				leftSpeed = baseSpeed - angleOut;
+				rightSpeed = baseSpeed + angleOut;
+
+				// 限制速度范围
+				if (leftSpeed > 1000) leftSpeed = 1000;
+				if (leftSpeed < 0) leftSpeed = 0;
+				if (rightSpeed > 1000) rightSpeed = 1000;
+				if (rightSpeed < 0) rightSpeed = 0;
+
+				// 控制电机
+				Motor_SetLeftSpeed(leftSpeed);
+				Motor_SetRightSpeed(rightSpeed);
 				
+				// 更新上一次角度误差
+				lastAngleError = angleError;
+
 				if(Track_ReadAll()!=0x00)//判定是否识别到黑线
 				{
 					if(currentState==STATE_A_TO_B)
@@ -215,6 +262,44 @@ void TIM3_IRQHandler()//10ms
 					Flag_Buzzer_ON =1;				
 				}
 				break;
+
+				// Actual1 = Encoder_GetLeft();
+				// Actual2 = Encoder_GetRight();
+			
+				// ErrorLast1=ErrorNow1;
+				// ErrorLast2=ErrorNow2;
+			
+				// ErrorNow1=Target1-Actual1;
+				// ErrorNow2=Target2-Actual2;
+			
+				// ErrorSum1+=ErrorNow1;
+				// ErrorSum2+=ErrorNow2;
+
+				// Out1=Kp_su*ErrorNow1 +Ki_su*ErrorSum1 +Kd_su*(ErrorNow1-ErrorLast1);
+				// Out2=Kp_su*ErrorNow2 +Ki_su*ErrorSum2 +Kd_su*(ErrorNow2-ErrorLast2);
+			
+				// if(Out1>1000){Out1=1000;}
+				// if(Out2>1000){Out2=1000;}
+				// if(Out1<0){Out1=0;}
+				// if(Out2<0){Out2=0;}
+
+				// Motor_SetLeftSpeed(Out1);
+				// Motor_SetRightSpeed(Out2);
+				
+				// if(Track_ReadAll()!=0x00)//判定是否识别到黑线
+				// {
+				// 	if(currentState==STATE_A_TO_B)
+				// 	{
+				// 		currentState =STATE_B_TO_C;
+				// 	}
+				// 	else
+				// 	{
+				// 		currentState = STATE_D_TO_A ;
+				// 	}
+				// 	Flag_LED_ON =1;
+				// 	Flag_Buzzer_ON =1;				
+				// }
+				// break;
 
 			 case STATE_B_TO_C://循迹环
 			 case STATE_D_TO_A://循迹环
